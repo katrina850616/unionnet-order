@@ -64,4 +64,89 @@
 
     <script>
         const ZAPIER_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/26072040/uge1z69/'; 
-        const products
+        const products = [
+            ["威德運動補給飲", 400, "有效率補水、補充電解質"],
+            ["威德牛奶蛋白拿鐵(12瓶/組)", 850, "持續幫助肌肉生長"],
+            ["威德 益口酵益生菌 校車版60入", 400, "口腔保健、顧腸胃"],
+            ["威德 全效益生菌30入/盒", 400, "維護消化道機能"],
+            ["威德膠原蛋白飲 24入", 600, "肌膚補水鎖水,維持澎潤"],
+            ["納豆紅麴 120入/瓶", 500, "降低膽固醇"],
+            ["威德 適立佳 60入/盒", 500, "葉黃素專業升級配方"],
+            ["海洋膠原粉+鐵 60入/盒", 520, "緊實+紅潤+嫩白"],
+            ["威德 敏飛兒益生菌 30入", 350, "調整過敏體質"],
+            ["威德 一日補給 30入/盒", 500, "補充一天基本營養素"],
+            ["雙茶花速崩錠 210入/瓶", 560, "幫助體重&體脂下降"],
+            ["威德 Omega魚球60入", 420, "補充腦力及維護視力"],
+            ["紅酒複方精萃 70入/盒", 400, "養顏美容，幫助抗氧化"],
+            ["威德益生菌 睡前專用 60入/盒", 1000, "好眠有益,幸福入睡"],
+            ["威德 柑橘軟糖", 180, "滿足每日維生素C需求"],
+            ["威德 一日補給50+", 650, "心血管養護、提升免疫"],
+            ["威德 青春賦活膠囊 60入", 650, "改善三高症狀"],
+            ["威德益生菌 保護力配方 60入", 900, "全方位提升保護力"],
+            ["威德益生菌 (盒裝) 90入", 380, "健胃整腸、消脹氣"],
+            ["檸檬酸鈣 90入/盒", 420, "補充鈣質"],
+            ["威德蔓越莓益生菌30入", 400, "預防私密處感染"],
+            ["靈芝多醣 180入/瓶", 470, "加強肝臟、維護心血管"],
+            ["威德輕暢酵素-纖暢配方", 500, "140種蔬果,幫助代謝"]
+        ];
+
+        function init() {
+            const list = document.getElementById('productList');
+            products.forEach(pd => {
+                const div = document.createElement('div');
+                div.className = "product-card border-2 border-slate-100 rounded-2xl p-5 flex justify-between items-center transition-all bg-white shadow-sm";
+                div.innerHTML = `<div class="flex-1 pr-4"><h3 class="font-bold text-slate-800 text-lg leading-snug">${pd[0]}</h3><p class="text-xs text-slate-400 font-medium mt-1">$${pd[1]} · ${pd[2]}</p></div><div class="flex items-center space-x-3"><input type="number" min="0" value="0" onchange="calculate()" class="qty w-20 p-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-center font-black text-indigo-600 focus:border-indigo-500 outline-none transition-colors" data-name="${pd[0]}" data-price="${pd[1]}"></div>`;
+                list.appendChild(div);
+            });
+        }
+
+        function calculate() {
+            let total = 0;
+            document.querySelectorAll('.qty').forEach(input => { total += (parseInt(input.value) || 0) * parseInt(input.getAttribute('data-price')); });
+            document.getElementById('grandTotal').innerText = '$ ' + total.toLocaleString();
+            return total;
+        }
+
+        async function submitToZapier() {
+            const name = document.getElementById('userName').value.trim();
+            const total = calculate();
+            if (!name) return alert('請填寫姓名！');
+            if (total <= 0) return alert('您還沒有選擇任何商品喔！');
+
+            const btn = document.getElementById('submitBtn');
+            btn.innerText = "資料連線中...";
+            btn.disabled = true;
+
+            const timeStr = new Date().toLocaleString();
+            
+            // 🚀 B 版核心：自動拆單發送
+            const promises = [];
+            document.querySelectorAll('.qty').forEach(input => {
+                const val = parseInt(input.value);
+                if (val > 0) {
+                    const payload = {
+                        "訂購時間": timeStr,
+                        "訂購人": name,
+                        "產品名稱": input.getAttribute('data-name'),
+                        "數量": val,
+                        "該項單價": input.getAttribute('data-price'),
+                        "應付總額": total
+                    };
+                    promises.push(fetch(ZAPIER_WEBHOOK_URL, { method: 'POST', body: JSON.stringify(payload) }));
+                }
+            });
+
+            try {
+                await Promise.all(promises);
+                document.getElementById('finalAmount').innerText = '$ ' + total.toLocaleString();
+                document.getElementById('paymentModal').classList.remove('hidden');
+            } catch (error) {
+                alert('系統繁忙，請稍後再試');
+                btn.disabled = false;
+                btn.innerText = "確認送出訂單";
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
